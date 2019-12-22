@@ -8,36 +8,42 @@ import (
 )
 
 var (
-	genesisBlock = Block{0, "", "", time.Now().String(), ""}
+	genesisBlock = Block{
+		Index:		0,
+		Hash:		"",
+		PrevHash:	"",
+		Timestamp:	time.Now().String(),
+		Data:		"",
+	}
 	Blockchain = []Block{genesisBlock}
 )
 
 type Block struct {
-	index		int
-	hash		string
-	prevHash	string
-	timestamp	string
-	data		string
+	Index		int
+	Hash		string
+	PrevHash	string
+	Timestamp	string
+	Data		string
 } 
 
 func CalculateHash(block Block) string {
 	h := sha256.New()
-	h.Write([]byte(string(block.index) + block.timestamp + block.prevHash + block.data))
+	h.Write([]byte(string(block.Index) + block.Timestamp + block.PrevHash + block.Data))
 	hash := h.Sum(nil)
 	return hex.EncodeToString(hash)
 }
 
 func GenerateNextBlock(data string) Block {
 	prevBlock := getLastBlock()
-	nextIndex := prevBlock.index + 1
+	nextIndex := prevBlock.Index + 1
 	nextHash := CalculateHash(prevBlock)
 	nextTimestamp := time.Now().String()
 	block := Block{
-		index:		nextIndex,
-		hash:		nextHash,
-		prevHash:	prevBlock.hash,
-		timestamp:	nextTimestamp,
-		data:	data,
+		Index:		nextIndex,
+		Hash:		nextHash,
+		PrevHash:	prevBlock.Hash,
+		Timestamp:	nextTimestamp,
+		Data:	data,
 	}
 
 	return block
@@ -52,18 +58,18 @@ func getBlockchain() []Block {
 }
 
 func isValidBlock(prevBlock, nextBlock Block) bool {
-	if prevBlock.index + 1 != nextBlock.index {
+	if prevBlock.Index + 1 != nextBlock.Index {
 		log.Println("Invalid index!")
 		return false
 	}
 	
-	if prevBlock.hash != nextBlock.prevHash {
+	if prevBlock.Hash != nextBlock.PrevHash {
 		log.Println("Invalid previous hash!")
 		return false
 	} 
 	
-	if CalculateHash(nextBlock) != nextBlock.hash {
-		log.Printf("Invalid hash: %s -> %s\n", CalculateHash(nextBlock), nextBlock.hash)
+	if CalculateHash(nextBlock) != nextBlock.Hash {
+		log.Printf("Invalid hash: %s -> %s\n", CalculateHash(nextBlock), nextBlock.Hash)
 		return false
 	}
 
