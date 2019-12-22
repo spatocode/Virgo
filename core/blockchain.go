@@ -8,8 +8,8 @@ import (
 )
 
 var (
-	Blockchain []*Block
-	genesisBlock = &Block{0, "", "", time.Now().String(), ""}
+	genesisBlock = Block{0, "", "", time.Now().String(), ""}
+	Blockchain = []Block{genesisBlock}
 )
 
 type Block struct {
@@ -18,9 +18,9 @@ type Block struct {
 	prevHash	string
 	timestamp	string
 	data		string
-}
+} 
 
-func CalculateHash(block *Block) string {
+func CalculateHash(block Block) string {
 	h := sha256.New()
 	h.Write([]byte(string(block.index) + block.timestamp + block.prevHash + block.data))
 	hash := h.Sum(nil)
@@ -43,11 +43,15 @@ func GenerateNextBlock(data string) Block {
 	return block
 }
 
-func getLastBlock() *Block {
+func getLastBlock() Block {
 	return Blockchain[len(Blockchain)-1]
 }
 
-func isValidBlock(prevBlock, nextBlock *Block) bool {
+func getBlockchain() []Block {
+	return Blockchain
+}
+
+func isValidBlock(prevBlock, nextBlock Block) bool {
 	if prevBlock.index + 1 != nextBlock.index {
 		log.Println("Invalid index!")
 		return false
@@ -66,11 +70,11 @@ func isValidBlock(prevBlock, nextBlock *Block) bool {
 	return true
 }
 
-func isValidGenesis(block *Block) bool {
+func isValidGenesis(block Block) bool {
 	return block == genesisBlock
 }
 
-func isValidChain(blockchain []*Block) bool {
+func isValidChain(blockchain []Block) bool {
 	if !isValidGenesis(blockchain[0]) {
 		return false
 	}
@@ -84,7 +88,7 @@ func isValidChain(blockchain []*Block) bool {
 	return true
 }
 
-func replaceChain(newBlocks []*Block) {
+func replaceChain(newBlocks []Block) {
 	if isValidChain(newBlocks) && len(newBlocks) > len(Blockchain) {
 		Blockchain = newBlocks
 	}
