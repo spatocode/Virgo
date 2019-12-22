@@ -40,11 +40,7 @@ func handlePostBlockchain(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	newBlock, err := GenerateNextBlock(m.data)
-	if err != nil {
-		respondWithJSON(w, r, http.StatusInternalServeError, m)
-		return
-	}
+	newBlock := GenerateNextBlock(m.data)
 
 	if isValidBlock(Blockchain[len(Blockchain)-1], newBlock) {
 		newBlockchain := append(Blockchain, newBlock)
