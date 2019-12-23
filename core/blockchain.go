@@ -9,13 +9,7 @@ import (
 )
 
 var (
-	genesisBlock = Block{
-		Index:		0,
-		Hash:		"",
-		PrevHash:	"",
-		Timestamp:	time.Now(),
-		Data:		"",
-	}
+	genesisBlock = Block{Timestamp:	time.Now()} // Other fields will have nil values
 	Blockchain = []Block{genesisBlock}
 )
 
@@ -25,13 +19,13 @@ type Block struct {
 	PrevHash	string
 	Timestamp	time.Time
 	Data		string
-	difficulty	int
-	nonce		int
+	Difficulty	int
+	Nonce		int
 } 
 
 func CalculateHash(block Block) string {
 	h := sha256.New()
-	h.Write([]byte(string(block.Index) + block.Timestamp.String() + block.PrevHash + block.Data + string(block.difficulty) + string(block.nonce)))
+	h.Write([]byte(string(block.Index) + block.Timestamp.String() + block.PrevHash + block.Data + string(block.Difficulty) + string(block.Nonce)))
 	hash := h.Sum(nil)
 	return hex.EncodeToString(hash)
 }
@@ -39,17 +33,31 @@ func CalculateHash(block Block) string {
 func GenerateNextBlock(data string) Block {
 	prevBlock := getLastBlock()
 	nextIndex := prevBlock.Index + 1
-	nextHash := CalculateHash(prevBlock)
+	nextHash, nonce := findBlockHash(prevBlock)
 	nextTimestamp := time.Now()
 	block := Block{
 		Index:		nextIndex,
-		Hash:		nextHash,
 		PrevHash:	prevBlock.Hash,
 		Timestamp:	nextTimestamp,
-		Data:	data,
+		Data:		data,	
 	}
 
+	block.Difficulty = getDifficulty(Blockchain)
+	block.Hash = nextHash
+	block.Nonce = nonce
+
 	return block
+}
+
+func findBlockHash(block Block) (string, int) {
+	var nonce int
+	for {
+		hash := CalculateHash(block)
+		if isValidHash(hash, block.Difficulty) {
+			return hash, nonce
+		}
+		nonce++
+	}
 }
 
 func getLastBlock() Block {
@@ -58,6 +66,30 @@ func getLastBlock() Block {
 
 func getBlockchain() []Block {
 	return Blockchain
+}
+
+func getDifficulty(blockchain []Block) int {
+	lastBlock := getLastBlock()
+	if lastBlock.Index % difficultyAdjustmentInterval == 0 && lastBlock.Index != 0 {
+		return getAdjustedDifficulty(lastBlock, blockchain)
+	}
+	return lastBlock.Difficulty
+}
+
+func getAdjustedDifficulty(lastBlock Block, blockchain []Block) int {
+	prevBlockAdjustment := blockchain[len(Blockchain) - difficultyAdjustmentInterval]
+	expectedTime := blockGenerationInterval * difficultyAdjustmentInterval
+	timeTaken := lastBlock.Timestamp.Sub(prevBlockAdjustment.Timestamp)
+
+	if int(timeTaken) < expectedTime / 2 {
+		return prevBlockAdjustment.Difficulty + 1
+	}
+	
+	if int(timeTaken) > expectedTime * 2 {
+		return prevBlockAdjustment.Difficulty - 1
+	}
+
+	return prevBlockAdjustment.Difficulty
 }
 
 func isValidBlock(prevBlock, nextBlock Block) bool {
@@ -112,47 +144,4 @@ func replaceChain(newBlocks []Block) {
 	if isValidChain(newBlocks) && len(newBlocks) > len(Blockchain) {
 		Blockchain = newBlocks
 	}
-}
-
-func findBlock(block Block) Block {
-	var nonce int
-	for {
-		hash := CalculateHash(block)
-		if isValidHash(hash, block.difficulty) {
-			return Block{
-				Index:		block.Index,
-				Hash: 		block.Hash,
-				PrevHash: 	block.PrevHash,
-				Timestamp: 	block.Timestamp,
-				Data:		block.Data,
-				difficulty:	block.difficulty,
-				nonce:		block.nonce,
-			}
-		}
-		nonce++
-	}
-}
-
-func getDifficulty(blockchain []Block) int {
-	lastBlock := getLastBlock()
-	if lastBlock.Index % difficultyAdjustmentInterval == 0 && lastBlock.Index != 0 {
-		return getAdjustedDifficulty(lastBlock, blockchain)
-	}
-	return lastBlock.difficulty
-}
-
-func getAdjustedDifficulty(lastBlock Block, blockchain []Block) int {
-	prevBlockAdjustment := blockchain[len(Blockchain) - difficultyAdjustmentInterval]
-	expectedTime := blockGenerationInterval * difficultyAdjustmentInterval
-	timeTaken := lastBlock.Timestamp.Sub(prevBlockAdjustment.Timestamp)
-
-	if int(timeTaken) < expectedTime / 2 {
-		return prevBlockAdjustment.difficulty + 1
-	}
-	
-	if int(timeTaken) > expectedTime * 2 {
-		return prevBlockAdjustment.difficulty - 1
-	}
-
-	return prevBlockAdjustment.difficulty
 }
